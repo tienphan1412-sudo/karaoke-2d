@@ -1,7 +1,6 @@
 // Lưu tài khoản: MongoDB nếu có MONGODB_URI, không thì lưu file data/players.json
 const fs = require('fs');
 const path = require('path');
-
 const FILE = path.join(__dirname, 'data', 'players.json');
 
 async function createStore() {
@@ -17,6 +16,7 @@ async function createStore() {
       async get(key) { return col.findOne({ key }, { projection: { _id: 0 } }); },
       async save(p) { await col.updateOne({ key: p.key }, { $set: p }, { upsert: true }); },
       async top(n) { return col.find({}, { projection: { _id: 0, name: 1, tips: 1 } }).sort({ tips: -1 }).limit(n).toArray(); },
+      async topFlowers(day, n) { return col.find({ day, flowersDay: { $gt: 0 } }, { projection: { _id: 0, name: 1, flowersDay: 1 } }).sort({ flowersDay: -1 }).limit(n).toArray(); },
     };
   }
   let db = {};
@@ -25,10 +25,10 @@ async function createStore() {
   const flush = () => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(db)); };
   console.log('Chưa có MONGODB_URI → lưu tạm vào file (sẽ mất khi Render khởi động lại)');
   return {
-    async get(key) { return db[key] ? { ...db[key] } : null; },
-    async save(p) { db[p.key] = { ...p }; clearTimeout(timer); timer = setTimeout(flush, 500); },
+    async get(key) { return db[key] ? JSON.parse(JSON.stringify(db[key])) : null; },
+    async save(p) { db[p.key] = JSON.parse(JSON.stringify(p)); clearTimeout(timer); timer = setTimeout(flush, 500); },
     async top(n) { return Object.values(db).sort((a, b) => b.tips - a.tips).slice(0, n).map(p => ({ name: p.name, tips: p.tips })); },
+    async topFlowers(day, n) { return Object.values(db).filter(p => p.day === day && p.flowersDay > 0).sort((a, b) => b.flowersDay - a.flowersDay).slice(0, n).map(p => ({ name: p.name, flowersDay: p.flowersDay })); },
   };
 }
-
 module.exports = { createStore };

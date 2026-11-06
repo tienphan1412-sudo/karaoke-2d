@@ -1,38 +1,46 @@
 # KTV Lung Linh 2D
 
-Game karaoke 2D chơi online nhiều người. Mỗi người vào vai một cô tiếp viên: phục vụ khách để kiếm tip, trang điểm cho đúng gu khách, và chạy trốn khi vợ khách xông vào đánh ghen.
+Game karaoke chơi online nhiều người. Người chơi đi lại trong quán, phục vụ khách để kiếm tip, hát karaoke chấm điểm, biểu diễn, mua sắm và né vợ khách đánh ghen.
 
-## Chơi thử trên máy
+## Bật / tắt tính năng (ra mắt từng đợt)
+Mở file `features.json` trên GitHub, bấm ✏️ để sửa. Đổi `true` / `false` rồi bấm **Commit changes**. Render sẽ tự deploy lại trong vài phút.
+
+| Tên | Tính năng |
+|---|---|
+| `locks` | Khóa nhân vật, cày đủ tổng tip mới mở |
+| `shop` | Shop mua đồ, son, phụ kiện, vật phẩm (tắt thì mọi thứ miễn phí) |
+| `ghenV2` | Đánh ghen kiểu mới: 4 cách thoát (tắt thì chỉ có nút Chạy) |
+| `quests` | Nhiệm vụ hằng ngày + quà điểm danh |
+| `karaoke` | Hát karaoke có máy chấm điểm ở máy chọn bài trong phòng |
+| `emotes` | Biểu diễn: hát, nhảy, thả tim, cụng ly, vẫy tay |
+| `fireworks` | Bắn pháo hoa |
+| `gifts` | Tặng hoa, bo tiền cho người chơi khác + bảng Hoa Hậu Đêm Nay |
+| `event` | Sự kiện Đại Gia Bao Phòng VIP (khoảng 10–20 phút một lần) |
+
+Gợi ý chia đợt:
+- **Đợt 1** (đang bật): `locks`, `shop`, `ghenV2`, `quests`
+- **Đợt 2**: `karaoke`, `emotes`, `fireworks`
+- **Đợt 3**: `gifts`, `event`
+
+## Ảnh
+| Thư mục | Tên file | Ghi chú |
+|---|---|---|
+| `public/chars/` | `linh_1.webp` … `linh_4.webp` | 1 Lộng lẫy · 2 Gợi cảm · 3 Kín đáo · 4 Đồ biển · 5 Đồ diễn · 6–11 Váy tiệc (ren bèo kem, xếp tầng hồng, voan đen, hoa hồng nơ, lệch vai voan, ren ôm dài) |
+| `public/chars/` | `linh_hat.webp`, `linh_nhay.webp` | Ảnh tư thế đồ diễn (cầm mic hát, nhảy múa). Khi bấm Hát/Nhảy, nhân vật tự đổi sang ảnh này |
+| `public/cust/` | `daigia_ok.webp`, `daigia_love.webp`, `daigia_mad.webp`… | Khách: `daigia`, `bolero`, `it`, `sep` |
+| `public/cust/` | `wife.webp` | Bà vợ đánh ghen |
+| `public/bg/` | `hall_top.webp`, `p1_top.webp`… | Ảnh nền phòng (`_top` = bản đồ, `_front` = màn phục vụ) |
+
+Vị trí makeup trên mặt lưu trong `public/faces.json`. Có thể canh lại bằng trang `/calib.html`.
+
+## Chạy thử trên máy
 ```
 npm install
 npm start
 ```
 Mở http://localhost:3000
 
-## Đưa lên mạng (GitHub + Render)
-1. Tạo repo mới trên GitHub, ví dụ `karaoke-2d`. Upload toàn bộ thư mục này lên, **trừ** `node_modules` và `data`.
-2. Trên Render: New → Web Service → chọn repo vừa tạo.
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Plan: Free · Region: Singapore
-3. **Lưu tip lâu dài:** vào Environment, thêm biến `MONGODB_URI` (dùng chuỗi kết nối MongoDB đang có, có thể dùng chung với game 3D vì game này lưu sang một database riêng tên `karaoke2d`). Nếu không thêm biến này, tip chỉ được lưu tạm và sẽ mất khi Render khởi động lại.
-
-## Gắn ảnh nhân vật thật (tạo bằng AI)
-1. Bỏ ảnh PNG nền trong suốt vào `public/chars/`, đặt tên theo dạng `linh_1.png`, `linh_2.png`, `linh_3.png`, `vy_1.png`...
-   - Số **1** = Lộng lẫy, **2** = Gợi cảm, **3** = Kín đáo, **4** = Đồ biển
-   - Tên nhân vật: `linh`, `vy`, `ngoc`, `mai`
-2. Game tự nhận ảnh. Ô nào chưa có ảnh thì vẫn dùng hình tạm.
-3. Canh vị trí makeup: mở `/calib.html`, chọn ảnh, rồi bấm lần lượt vào mắt trái, mắt phải, môi, má trái, má phải. Copy đoạn chữ hiện ra, dán vào `public/faces.json`.
-
-## Ảnh khách và bà vợ
-Để trong `public/cust/`, đặt tên `<khách>_<biểu cảm>.webp`:
-- Khách: `daigia`, `bolero`, `it`, `sep`
-- Biểu cảm: `ok` (bình thường), `love` (vui), `mad` (giận)
-- Bà vợ đánh ghen: `wife.webp`
-
-## Nhạc
-Bỏ file `.mp3` vào `public/music/`. Khi người chơi bước vào phòng karaoke, game sẽ phát ngẫu nhiên một bài.
-
-## Tùy chỉnh
-- Khách, yêu cầu của khách, màu son, cấp bậc: sửa trong `shared/data.js`
-- Tần suất vợ khách đánh ghen: biến môi trường `GHEN_MIN_SEC` / `GHEN_MAX_SEC` (mặc định 150–300 giây)
+## Đưa lên mạng (Render)
+- Build Command: `npm install` · Start Command: `npm start`
+- Biến môi trường `MONGODB_URI` để lưu tiền tip lâu dài.
+- Người chơi cũ khi vào bản mới: ví được tặng bằng tổng tip đang có, và mở sẵn đủ 4 bộ đồ.

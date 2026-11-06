@@ -1,0 +1,12 @@
+{
+  "_huong_dan": "Đổi true/false để bật/tắt tính năng, rồi commit lên GitHub. Render sẽ tự deploy lại.",
+  "locks": true,
+  "shop": true,
+  "ghenV2": true,
+  "quests": true,
+  "karaoke": false,
+  "emotes": false,
+  "fireworks": false,
+  "gifts": false,
+  "event": false
+}

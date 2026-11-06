@@ -2,50 +2,99 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>KTV Lung Linh 2D</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>KTV Lung Linh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Be+Vietnam+Pro:wght@400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <canvas id="map"></canvas>
 
 <!-- Đăng nhập -->
-<div id="login" class="screen">
-  <div class="panel login-panel">
-    <h1>KTV <span>Lung Linh</span> 2D</h1>
-    <p class="sub">Vào ca, phục vụ khách, gom tip, né vợ khách 🩴</p>
-    <div class="row">
-      <input id="lname" maxlength="16" placeholder="Tên nhân vật">
-      <input id="lpin" maxlength="4" inputmode="numeric" placeholder="PIN 4 số">
+<div id="login" class="screen full bgscreen">
+  <div class="login-box">
+    <div class="logo">KTV <b>LUNG LINH</b></div>
+    <div class="logo-sub">Phục vụ khách · Gom tip · Né vợ khách 🩴</div>
+    <div class="glass">
+      <input id="lname" maxlength="16" placeholder="Tên nhân vật" autocomplete="off">
+      <input id="lpin" maxlength="4" inputmode="numeric" placeholder="Mã PIN 4 số" autocomplete="off">
+      <button id="lgo" class="btn-main">VÀO QUÁN ✨</button>
+      <p class="hint">Lần đầu: tự đặt tên + PIN. Lần sau nhập lại đúng để giữ tiền tip.</p>
+      <p id="lerr" class="err"></p>
     </div>
-    <p class="hint">Lần đầu: tạo tên + PIN mới. Lần sau nhập lại đúng tên + PIN để giữ tip.</p>
-    <div id="charPick" class="char-pick"></div>
-    <div id="outfitPick" class="seg"></div>
-    <button id="lgo" class="big">Vào ca ✨</button>
-    <p id="lerr" class="err"></p>
+  </div>
+</div>
+
+<!-- Chọn nhân vật kiểu YABAI -->
+<div id="select" class="screen full bgscreen hidden">
+  <div class="sel-top"><div class="pill-btn" id="selWallet"></div><div class="logo small">KTV <b>LUNG LINH</b></div><div class="pill-btn" id="selTips"></div></div>
+  <div class="sel-stage">
+    <button class="round-btn arrow" id="selPrev">‹</button>
+    <div class="stage">
+      <div class="ring"></div>
+      <canvas id="selChar" width="420" height="630"></canvas>
+      <div id="selLock" class="lock hidden">🔒</div>
+    </div>
+    <button class="round-btn arrow" id="selNext">›</button>
+  </div>
+  <div class="dots" id="selDots"></div>
+  <div class="card">
+    <div class="card-name" id="selName"></div>
+    <div class="tag" id="selTag"></div>
+    <div class="sw">
+      <div class="strong"><b>MẠNH</b><span id="selStrong"></span></div>
+      <div class="weak"><b>YẾU</b><span id="selWeak"></span></div>
+    </div>
+    <div class="story"><b>HOÀN CẢNH</b><span id="selStory"></span></div>
+    <div class="seg" id="selOutfit"></div>
+    <button id="selGo" class="btn-main">VÀO CA ✨</button>
+    <p id="selErr" class="err"></p>
   </div>
 </div>
 
 <!-- HUD -->
 <div id="hud" class="hidden">
-  <div class="me-box"><div id="hName"></div><div id="hRank"></div><div id="hTips"></div></div>
-  <div class="top-box"><b>🏆 Bảng tip</b><ol id="topList"></ol></div>
-  <div id="roomLabel"></div>
+  <div class="prof">
+    <canvas id="avatar" width="120" height="120"></canvas>
+    <div><div id="hName" class="pname"></div><div id="hRank" class="prank"></div>
+      <div class="money"><span id="hWallet" title="Ví (tiền tiêu được)"></span><span id="hTips" title="Tổng tip đã kiếm (xếp hạng)"></span></div></div>
+  </div>
+  <div class="topbtns">
+    <button class="round-btn" id="bTop" title="Bảng xếp hạng">🏆</button>
+    <button class="round-btn" id="bQuest" title="Nhiệm vụ">🎯<i class="badge hidden" id="questBadge"></i></button>
+    <button class="round-btn" id="bShop" title="Shop">🛍️</button>
+    <button class="round-btn" id="bSound" title="Âm thanh">🔊</button>
+  </div>
+  <div class="center-top">
+    <div id="roomLabel"></div>
+    <div id="eventBar" class="eventbar hidden"></div>
+    <div id="ticker" class="ticker"></div>
+  </div>
   <button id="actBtn" class="act hidden"></button>
+  <div class="bottom-left">
+    <button class="round-btn big" id="bEmote" title="Biểu diễn">💃</button>
+    <button class="round-btn big" id="bFire" title="Bắn pháo hoa">🎆<i class="badge" id="fireCount">0</i></button>
+  </div>
+  <div id="emoteWheel" class="emote-wheel hidden"></div>
+  <button id="bExit" class="exit-btn hidden">🚪 Ra sảnh</button>
   <form id="chatForm"><input id="chatIn" maxlength="80" placeholder="Nhắn gì đó... (Enter)"><button>Gửi</button></form>
-  <button id="musicBtn" class="icon-btn" title="Nhạc">🔈</button>
 </div>
+
+<!-- Popup người chơi -->
+<div id="pmenu" class="pmenu hidden"></div>
 
 <!-- Phục vụ khách -->
 <div id="serve" class="screen hidden">
   <div class="panel serve-panel">
-    <div class="serve-stage">
+    <div class="serve-stage" id="serveStage">
       <canvas id="serveMe" width="360" height="520"></canvas>
       <div class="serve-cust">
         <div id="custBubble" class="bubble"></div>
         <div id="custArt"></div>
         <div id="custName" class="cust-name"></div>
       </div>
+      <div id="serveBuffs" class="buffs"></div>
     </div>
     <div id="serveBody">
       <div class="round-row"><span id="roundNo"></span><div class="timer"><i id="timerBar"></i></div></div>
@@ -56,13 +105,24 @@
   </div>
 </div>
 
-<!-- Phòng trang điểm -->
+<!-- Karaoke -->
+<div id="karaoke" class="screen hidden">
+  <div class="panel kara-panel" id="karaPanel">
+    <div class="kara-head"><b>🎤 MÁY CHẤM ĐIỂM</b><span id="karaLyric"></span></div>
+    <div class="kara-field" id="karaField">
+      <div class="lane" data-l="0"><span>A</span></div><div class="lane" data-l="1"><span>S</span></div><div class="lane" data-l="2"><span>D</span></div>
+      <div class="hitline"></div>
+      <div id="karaFx" class="kara-fx"></div>
+    </div>
+    <div id="karaResult" class="kara-result hidden"></div>
+    <p class="hint center">Bấm phím A / S / D (hoặc chạm cột) khi nốt chạm vạch vàng</p>
+  </div>
+</div>
+
+<!-- Trang điểm -->
 <div id="makeup" class="screen hidden">
   <div class="panel makeup-panel">
-    <div class="mk-views">
-      <canvas id="mkFull" width="300" height="450"></canvas>
-      <canvas id="mkFace" width="300" height="300"></canvas>
-    </div>
+    <div class="mk-views"><canvas id="mkFull" width="300" height="450"></canvas><canvas id="mkFace" width="300" height="300"></canvas></div>
     <div class="mk-tools">
       <h3>Nhân vật</h3><div id="mkChar" class="seg"></div>
       <h3>Trang phục</h3><div id="mkOutfit" class="seg"></div>
@@ -70,9 +130,38 @@
       <label class="slider">Độ đậm son <input id="mkLipA" type="range" min="20" max="100" value="70"></label>
       <h3>Má hồng</h3><div id="mkBlush" class="swatches"></div>
       <h3>Phấn mắt</h3><div id="mkShadow" class="swatches"></div>
-      <label class="check"><input id="mkGlitter" type="checkbox"> Kim tuyến dưới mắt ✨</label>
-      <div class="row"><button id="mkSave" class="big">Lưu & ra làm</button><button id="mkClose" class="ghost">Đóng</button></div>
+      <h3>Phụ kiện</h3><div id="mkAcc" class="seg"></div>
+      <label class="check" id="mkGlitterRow"><input id="mkGlitter" type="checkbox"> Kim tuyến dưới mắt ✨</label>
+      <p class="hint" id="mkShopHint">🔒 Món có khóa: mua ở Shop 🛍️</p>
+      <div class="row"><button id="mkSave" class="btn-main">Lưu & thay đồ</button><button id="mkClose" class="ghost">Đóng</button></div>
     </div>
+  </div>
+</div>
+
+<!-- Shop -->
+<div id="shop" class="screen hidden">
+  <div class="panel shop-panel">
+    <div class="panel-head"><h2>🛍️ SHOP</h2><span class="wallet" id="shopWallet"></span><button class="x" data-close="shop">✕</button></div>
+    <div class="tabs" id="shopTabs"></div>
+    <div class="shop-grid" id="shopGrid"></div>
+  </div>
+</div>
+
+<!-- Nhiệm vụ -->
+<div id="quests" class="screen hidden">
+  <div class="panel small-panel">
+    <div class="panel-head"><h2>🎯 NHIỆM VỤ HÔM NAY</h2><button class="x" data-close="quests">✕</button></div>
+    <div id="streak" class="streak"></div>
+    <div id="questList"></div>
+  </div>
+</div>
+
+<!-- Bảng xếp hạng -->
+<div id="rank" class="screen hidden">
+  <div class="panel small-panel">
+    <div class="panel-head"><h2>🏆 BẢNG XẾP HẠNG</h2><button class="x" data-close="rank">✕</button></div>
+    <div class="tabs" id="rankTabs"><button class="on" data-t="tips">💸 Tổng tip</button><button data-t="flowers">💐 Hoa Hậu Đêm Nay</button></div>
+    <ol id="rankList" class="rank-list"></ol>
   </div>
 </div>
 
@@ -81,14 +170,15 @@
   <div class="panel ghen-panel">
     <div id="ghenArt"></div>
     <h2 id="ghenTitle"></h2>
-    <p>Bấm liên tục nút CHẠY (hoặc phím Space) để thoát thân!</p>
-    <button id="ghenRun" class="run">🏃‍♀️ CHẠY!</button>
     <div class="timer"><i id="ghenBar"></i></div>
-    <div id="ghenCount"></div>
+    <div id="ghenChoices" class="ghen-choices"></div>
+    <div id="ghenRunBox" class="hidden"><button id="ghenRun" class="run">🏃‍♀️ CHẠY!</button><div id="ghenCount"></div></div>
+    <div id="ghenResult" class="ghen-result hidden"></div>
   </div>
 </div>
 
 <div id="toasts"></div>
+<canvas id="fx"></canvas>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/shared/data.js"></script>

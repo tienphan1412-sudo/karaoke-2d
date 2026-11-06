@@ -14,7 +14,7 @@
 
   function placeholderSVG(c, outfit) {
     const s = c.skin, h = c.hair, oc = c.outfitColors[outfit];
-    if (outfit === 3) outfit = 1;
+    if (outfit === 3) outfit = 1; if (outfit >= 4) outfit = outfit === 7 ? 1 : 0;
     const shade = 'rgba(0,0,0,.12)';
     let backHair = '', frontHair = '';
     if (c.hairStyle === 'long') {
@@ -143,14 +143,82 @@
     ctx.restore();
   }
 
-  // look = {char, outfit, makeup}; mode = 'full' | 'face' | 'bust'
+  function drawAcc(ctx, f, acc) {
+    if (!acc) return;
+    const ew = f.eyeW, mx = (f.eyeL[0] + f.eyeR[0]) / 2, my = (f.eyeL[1] + f.eyeR[1]) / 2, span = f.eyeR[0] - f.eyeL[0];
+    ctx.save();
+    if (acc === 'kinh') {
+      ctx.fillStyle = 'rgba(20,10,20,.88)'; ctx.strokeStyle = '#d9a441'; ctx.lineWidth = ew * 0.08;
+      for (const [x, y] of [f.eyeL, f.eyeR]) { ctx.beginPath(); ctx.ellipse(x, y, ew * 0.75, ew * 0.55, 0, 0, 7); ctx.fill(); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(f.eyeL[0] + ew * 0.7, my - ew * 0.1); ctx.quadraticCurveTo(mx, my - ew * 0.35, f.eyeR[0] - ew * 0.7, my - ew * 0.1); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      for (const [x, y] of [f.eyeL, f.eyeR]) { ctx.beginPath(); ctx.ellipse(x - ew * 0.25, y - ew * 0.2, ew * 0.18, ew * 0.1, -0.5, 0, 7); ctx.fill(); }
+    } else if (acc === 'vuongmien') {
+      const w = span * 1.5, h = ew * 1.3, cx = mx, base = my - span * 1.35;
+      const g = ctx.createLinearGradient(0, base - h, 0, base); g.addColorStop(0, '#fff3a8'); g.addColorStop(1, '#d9a441');
+      ctx.fillStyle = g; ctx.strokeStyle = '#8a6a1a'; ctx.lineWidth = ew * 0.05;
+      ctx.beginPath(); ctx.moveTo(cx - w / 2, base);
+      const pts = 5;
+      for (let i = 0; i <= pts * 2; i++) { const x = cx - w / 2 + (w * i) / (pts * 2); ctx.lineTo(x, i % 2 ? base - h * 0.45 : base - h); }
+      ctx.lineTo(cx + w / 2, base); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ['#ff3f8e', '#36e0ff', '#ff3f8e'].forEach((c, i) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(cx + (i - 1) * w * 0.3, base - h * 0.2, ew * 0.13, 0, 7); ctx.fill(); });
+    } else if (acc === 'hoa') {
+      const cx = f.eyeR[0] + span * 0.75, cy = my - span * 0.75, r = ew * 0.55;
+      for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; ctx.fillStyle = i % 2 ? '#ff4f7b' : '#ff6b8f'; ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * r * 0.75, cy + Math.sin(a) * r * 0.75, r * 0.7, r * 0.5, a, 0, 7); ctx.fill(); }
+      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(cx, cy, r * 0.28, 0, 7); ctx.fill();
+    } else if (acc === 'ngoctrai') {
+      const cx = f.lips[0], cy = f.lips[1] + span * 1.35, rx = span * 1.05, ry = span * 0.55;
+      for (let i = 0; i <= 16; i++) {
+        const a = Math.PI * 0.12 + (Math.PI * 0.76) * i / 16;
+        const x = cx - Math.cos(a) * rx, y = cy + Math.sin(a) * ry - ry * 0.4;
+        const g = ctx.createRadialGradient(x - 1, y - 1, 0, x, y, ew * 0.13); g.addColorStop(0, '#fff'); g.addColorStop(1, '#d8cfc4');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, ew * 0.11, 0, 7); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Ảnh tư thế: chars/<id>_<pose>.webp (hat | nhay). Không có thì trả null
+  function poseFile(charId, pose) {
+    const list = (assetList && assetList.chars) || [];
+    return list.find(f => f.replace(/\.\w+$/, '').toLowerCase() === `${charId}_${pose}`);
+  }
+  const composed = new Map();
+  // Ghép ảnh + makeup + phụ kiện vào khung 600x900 (có cache)
+  async function compose(look) {
+    const pose = look.pose && poseFile(look.char, look.pose) ? look.pose : null;
+    const key = JSON.stringify([look.char, pose || look.outfit, look.makeup || {}, look.acc || null]);
+    if (composed.has(key)) return composed.get(key);
+    const job = (async () => {
+      let img, fkey;
+      if (pose) { img = await loadImg('/chars/' + poseFile(look.char, pose)); fkey = `${look.char}_${pose}`; }
+      else { const b = await baseImage(look.char, look.outfit); img = b.img; fkey = b.key; }
+      const off = document.createElement('canvas'); off.width = PW; off.height = PH;
+      const o = off.getContext('2d');
+      drawNormalized(o, img);
+      const f = pose ? faces[fkey] : faceFor(look.char, fkey);
+      if (f) { applyMakeup(o, f, look.makeup); drawAcc(o, f, look.acc); }
+      off.face = f || faceFor(look.char, fkey);
+      return off;
+    })();
+    composed.set(key, job);
+    if (composed.size > 80) composed.delete(composed.keys().next().value);
+    return job;
+  }
+  // Bản đồng bộ cho vòng lặp vẽ: trả canvas nếu đã sẵn sàng, không thì null (và bắt đầu tải)
+  const ready = new Map();
+  function spriteSync(look) {
+    const pose = look.pose && poseFile(look.char, look.pose) ? look.pose : null;
+    const key = JSON.stringify([look.char, pose || look.outfit, look.makeup || {}, look.acc || null]);
+    if (ready.has(key)) return ready.get(key);
+    if (!ready.has('p:' + key)) { ready.set('p:' + key, 1); compose(look).then(c => ready.set(key, c)); }
+    return null;
+  }
+
+  // mode = 'full' | 'face' | 'bust'
   async function render(canvas, look, mode = 'full') {
-    const { img, key } = await baseImage(look.char, look.outfit);
-    const off = document.createElement('canvas'); off.width = PW; off.height = PH;
-    const o = off.getContext('2d');
-    drawNormalized(o, img);
-    const f = faceFor(look.char, key);
-    applyMakeup(o, f, look.makeup);
+    const off = await compose(look);
+    const f = off.face;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     let sx = 0, sy = 0, sw = PW, sh = PH;
@@ -169,5 +237,5 @@
     ctx.drawImage(off, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
   }
 
-  window.Portrait = { render, loadAssets, assetsSync: () => assetList, baseImage, drawNormalized, PW, PH, placeholderSVG };
+  window.Portrait = { render, compose, spriteSync, poseFile, loadAssets, assetsSync: () => assetList, loadImg, baseImage, drawNormalized, PW, PH, placeholderSVG };
 })();

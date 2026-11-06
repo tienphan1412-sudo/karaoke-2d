@@ -389,7 +389,7 @@
     if (p.queen) { ctx.strokeStyle = `rgba(255,210,63,${0.5 + 0.3 * Math.sin(t / 250)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, dw * 0.34, dw * 0.09, 0, 0, 7); ctx.stroke(); }
     ctx.save();
     ctx.translate(x, y - bob); ctx.rotate(rot); ctx.scale(sx, sy);
-    if (spr) ctx.drawImage(spr, -dw / 2, -dh * 0.985, dw, dh);
+    if (spr) drawLive(ctx, spr, -dw / 2, -dh * 0.985, dw, dh, p, now, { pose, em, moving: p.moving });
     else { ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(-dw * 0.15, -h, dw * 0.3, h); }
     if (em === 'hat' && !pose && spr && spr.face) { const f = spr.face; ctx.fillStyle = '#fff'; ctx.font = `${dh * 0.07}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; ctx.textAlign = 'center'; ctx.fillText('🎤', (f.lips[0] - 300) / 600 * dw + dw * 0.05, (f.lips[1] - 886) / 900 * dh + dh * 0.05); }
     ctx.restore();
@@ -467,6 +467,68 @@
     ctx.globalAlpha = 1;
     ctx.restore();
   }
+  // =========================================================
+  // 2.5D: thở, tóc + váy đung đưa, chớp mắt (biến dạng lưới trên ảnh 2D)
+  // =========================================================
+  const GX = 16, GY = 28; const FORCE_BLINK = location.search.includes('blink');
+  const seedOf = id => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) | 0; return (h >>> 0) % 1000 / 1000; };
+  const smooth = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const bump = (a, peak, b, x) => x <= a || x >= b ? 0 : x < peak ? smooth(a, peak, x) : 1 - smooth(peak, b, x);
+  function skinOf(spr) {
+    if (spr._skin !== undefined) return spr._skin;
+    spr._skin = null;
+    try {
+      const f = spr.face; if (!f) return null;
+      const d = spr.getContext('2d').getImageData(Math.round(f.cheekL[0]), Math.round(f.cheekL[1] - f.eyeW * 0.2), 3, 3).data;
+      if (d[3] > 200) spr._skin = `rgb(${d[0]},${d[1]},${d[2]})`;
+    } catch (e) { }
+    return spr._skin;
+  }
+  function drawLive(c, spr, X, Y, W, H, p, now, o) {
+    if (!p.seed) p.seed = seedOf(p.id) || 0.37;
+    const t = now / 1000 + p.seed * 20;
+    const f = spr.face, PW = 600, PH = 900;
+    const lipsV = f ? f.lips[1] / PH : 0.13;
+    const chestTop = lipsV + 0.06, waist = lipsV + 0.24;
+    const breath = Math.sin(t * 2.1) * 0.5 + 0.5;                 // 0..1, ~3 giây/nhịp
+    const ampB = H * 0.006;                                        // độ phồng ngực/vai
+    const wind = o.em === 'nhay' ? 2.2 : o.moving ? 1.7 : 1;
+    const ampHair = W * 0.010 * wind, ampSkirt = W * 0.013 * wind;
+    const sx0 = W / PW, sy0 = H / PH;
+    const cw = PW / GX, ch = PH / GY;
+    c.drawImage(spr, X, Y, W, H); // lớp nền tránh khe hở giữa các ô
+    for (let j = 0; j < GY; j++) {
+      const v = (j + 0.5) / GY;
+      // thở: phần trên ngực nâng lên, eo đứng yên → ngực/vai phồng nhẹ
+      const dy = -ampB * breath * (1 - smooth(chestTop, waist, v));
+      // váy: lắc từ hông xuống, chân giữ yên
+      const skirt = bump(waist + 0.05, 0.72, 0.97, v) * ampSkirt * Math.sin(t * 1.6 - v * 4);
+      const hairV = bump(lipsV - 0.02, lipsV + 0.18, waist + 0.12, v);
+      for (let i = 0; i < GX; i++) {
+        const u = (i + 0.5) / GX;
+        const side = smooth(0.06, 0.13, Math.abs(u - 0.5));        // chỉ phần hai bên mặt (tóc)
+        const dx = skirt * (0.6 + 0.4 * Math.abs(u - 0.5) * 4) + hairV * side * ampHair * Math.sin(t * 1.3 + (u < 0.5 ? 0 : 0.8) - v * 3);
+        c.drawImage(spr, i * cw, j * ch, cw, ch, X + i * cw * sx0 + dx - 0.6, Y + j * ch * sy0 + dy - 0.6, cw * sx0 + 1.2, ch * sy0 + 1.2);
+      }
+    }
+    // chớp mắt (chỉ ảnh đứng, có toạ độ mặt)
+    if (f && !o.pose) {
+      const cyc = (t * 1000) % 4200, closed = FORCE_BLINK ? 1 : cyc < 140 ? Math.sin(cyc / 140 * Math.PI) : 0;
+      const skin = closed > 0.05 && skinOf(spr);
+      if (skin) {
+        const ew = f.eyeW * sx0, dyEye = -ampB * breath;
+        for (const [ex, ey] of [f.eyeL, f.eyeR]) {
+          const x = X + ex * sx0, y = Y + ey * sy0 + dyEye, rx = ew * 0.62, ry = ew * 0.42;
+          c.save(); c.globalAlpha = Math.min(1, closed * 1.4); c.fillStyle = skin;
+          c.beginPath(); c.ellipse(x, y - ry * (1 - closed) * 0.4, rx, ry * closed, 0, 0, 7); c.fill();
+          c.strokeStyle = 'rgba(40,20,15,.85)'; c.lineWidth = Math.max(0.8, ew * 0.09);
+          c.beginPath(); c.moveTo(x - rx, y); c.quadraticCurveTo(x, y + ry * 0.35 * closed, x + rx, y); c.stroke();
+          c.restore();
+        }
+      }
+    }
+  }
+
   function sparkle(p) {
     const h = GD.charHeight(p.ry);
     for (let i = 0; i < 40; i++) particles.push({ x: p.rx + (Math.random() - 0.5) * h * 0.5, y: p.ry - Math.random() * h, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 3, r: 2 + Math.random() * 3, life: 1, c: ['#fff6c8', '#ff9ad5', '#ffd23f', '#9ad7ff'][i % 4] });

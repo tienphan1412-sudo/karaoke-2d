@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>Canh vị trí makeup</title>
+<style>
+body{background:#160e24;color:#fff;font-family:sans-serif;display:flex;gap:20px;padding:20px}
+canvas{background:#333;cursor:crosshair;border-radius:10px}
+button{padding:8px 14px;margin:4px;border-radius:8px;border:0;background:#2e2145;color:#fff;cursor:pointer}
+button.on{background:#ff3f8e} textarea{width:420px;height:200px;background:#1a1228;color:#7dffb0}
+</style></head><body>
+<canvas id="c" width="600" height="900"></canvas>
+<div>
+  <h2>Canh vị trí makeup cho ảnh thật</h2>
+  <p>1. Chọn ảnh: <select id="sel"></select></p>
+  <p>2. Lăn chuột trên ảnh để phóng to. Chọn điểm rồi bấm vào ảnh:</p>
+  <div id="pts"></div>
+  <p>3. Độ rộng mắt: <input id="ew" type="range" min="8" max="80"> &nbsp; Độ rộng môi: <input id="lw" type="range" min="8" max="80"></p>
+  <p>4. Copy đoạn dưới gửi cho Claude (hoặc dán vào public/faces.json):</p>
+  <textarea id="out" readonly></textarea>
+</div>
+<script src="/shared/data.js"></script><script src="portrait.js"></script>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');
+const NAMES={eyeL:'Mắt trái (giữa con ngươi)',eyeR:'Mắt phải',lips:'Giữa môi',cheekL:'Má trái',cheekR:'Má phải'};
+let key=null,face=null,cur='eyeL',img=null,z=1,ox=0,oy=0;
+const all={};
+async function init(){
+  const a=await Portrait.loadAssets();
+  const sel=document.getElementById('sel');
+  a.chars.forEach(f=>sel.add(new Option(f,f)));
+  if(!a.chars.length){sel.add(new Option('(chưa có ảnh trong public/chars)',''));}
+  sel.onchange=load; load();
+  const p=document.getElementById('pts');
+  Object.keys(NAMES).forEach(k=>{const b=document.createElement('button');b.textContent=NAMES[k];b.dataset.k=k;b.onclick=()=>{cur=k;mark()};p.append(b)});
+  mark();
+}
+function mark(){document.querySelectorAll('#pts button').forEach(b=>b.classList.toggle('on',b.dataset.k===cur))}
+async function load(){
+  const f=document.getElementById('sel').value; if(!f)return;
+  key=f.replace(/\.\w+$/,'');
+  img=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src='/chars/'+f});
+  face=JSON.parse(JSON.stringify(all[key]||GD.CHARACTERS[0].face));
+  document.getElementById('ew').value=face.eyeW;document.getElementById('lw').value=face.lipW;
+  draw();
+}
+function draw(){
+  x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,600,900);
+  x.setTransform(z,0,0,z,ox,oy);
+  const off=document.createElement('canvas');off.width=600;off.height=900;Portrait.drawNormalized(off.getContext('2d'),img);
+  x.drawImage(off,0,0);
+  x.lineWidth=1.5/z;
+  for(const k of Object.keys(NAMES)){const [px,py]=face[k];x.strokeStyle=k===cur?'#ff3f8e':'#7dffb0';
+    const r=(k.startsWith('eye')?face.eyeW/2:k==='lips'?face.lipW/2:face.eyeW*0.5);x.beginPath();x.arc(px,py,r,0,7);x.stroke();}
+  all[key]=face;
+  document.getElementById('out').value=JSON.stringify(all,null,1);
+}
+c.onclick=e=>{const r=c.getBoundingClientRect();const px=((e.clientX-r.left)*600/r.width-ox)/z,py=((e.clientY-r.top)*900/r.height-oy)/z;face[cur]=[Math.round(px),Math.round(py)];
+  const order=Object.keys(NAMES);cur=order[(order.indexOf(cur)+1)%order.length];mark();draw()};
+c.onwheel=e=>{e.preventDefault();const r=c.getBoundingClientRect();const mx=(e.clientX-r.left)*600/r.width,my=(e.clientY-r.top)*900/r.height;
+  const nz=Math.max(1,Math.min(8,z*(e.deltaY<0?1.2:1/1.2)));ox=mx-(mx-ox)*nz/z;oy=my-(my-oy)*nz/z;z=nz;if(z===1){ox=oy=0}draw()};
+document.getElementById('ew').oninput=e=>{face.eyeW=+e.target.value;draw()};
+document.getElementById('lw').oninput=e=>{face.lipW=+e.target.value;draw()};
+init();
+</script></body></html>

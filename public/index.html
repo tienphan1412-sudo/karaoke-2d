@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>KTV Lung Linh 2D</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="map"></canvas>
+
+<!-- Đăng nhập -->
+<div id="login" class="screen">
+  <div class="panel login-panel">
+    <h1>KTV <span>Lung Linh</span> 2D</h1>
+    <p class="sub">Vào ca, phục vụ khách, gom tip, né vợ khách 🩴</p>
+    <div class="row">
+      <input id="lname" maxlength="16" placeholder="Tên nhân vật">
+      <input id="lpin" maxlength="4" inputmode="numeric" placeholder="PIN 4 số">
+    </div>
+    <p class="hint">Lần đầu: tạo tên + PIN mới. Lần sau nhập lại đúng tên + PIN để giữ tip.</p>
+    <div id="charPick" class="char-pick"></div>
+    <div id="outfitPick" class="seg"></div>
+    <button id="lgo" class="big">Vào ca ✨</button>
+    <p id="lerr" class="err"></p>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="me-box"><div id="hName"></div><div id="hRank"></div><div id="hTips"></div></div>
+  <div class="top-box"><b>🏆 Bảng tip</b><ol id="topList"></ol></div>
+  <div id="roomLabel"></div>
+  <button id="actBtn" class="act hidden"></button>
+  <form id="chatForm"><input id="chatIn" maxlength="80" placeholder="Nhắn gì đó... (Enter)"><button>Gửi</button></form>
+  <button id="musicBtn" class="icon-btn" title="Nhạc">🔈</button>
+</div>
+
+<!-- Phục vụ khách -->
+<div id="serve" class="screen hidden">
+  <div class="panel serve-panel">
+    <div class="serve-stage">
+      <canvas id="serveMe" width="360" height="520"></canvas>
+      <div class="serve-cust">
+        <div id="custBubble" class="bubble"></div>
+        <div id="custArt"></div>
+        <div id="custName" class="cust-name"></div>
+      </div>
+    </div>
+    <div id="serveBody">
+      <div class="round-row"><span id="roundNo"></span><div class="timer"><i id="timerBar"></i></div></div>
+      <div id="options" class="options"></div>
+    </div>
+    <div id="serveResult" class="hidden"></div>
+    <button id="serveQuit" class="ghost">Thôi, rút lui</button>
+  </div>
+</div>
+
+<!-- Phòng trang điểm -->
+<div id="makeup" class="screen hidden">
+  <div class="panel makeup-panel">
+    <div class="mk-views">
+      <canvas id="mkFull" width="300" height="450"></canvas>
+      <canvas id="mkFace" width="300" height="300"></canvas>
+    </div>
+    <div class="mk-tools">
+      <h3>Nhân vật</h3><div id="mkChar" class="seg"></div>
+      <h3>Trang phục</h3><div id="mkOutfit" class="seg"></div>
+      <h3>Son môi</h3><div id="mkLip" class="swatches"></div>
+      <label class="slider">Độ đậm son <input id="mkLipA" type="range" min="20" max="100" value="70"></label>
+      <h3>Má hồng</h3><div id="mkBlush" class="swatches"></div>
+      <h3>Phấn mắt</h3><div id="mkShadow" class="swatches"></div>
+      <label class="check"><input id="mkGlitter" type="checkbox"> Kim tuyến dưới mắt ✨</label>
+      <div class="row"><button id="mkSave" class="big">Lưu & ra làm</button><button id="mkClose" class="ghost">Đóng</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Đánh ghen -->
+<div id="ghen" class="screen hidden">
+  <div class="panel ghen-panel">
+    <div id="ghenArt"></div>
+    <h2 id="ghenTitle"></h2>
+    <p>Bấm liên tục nút CHẠY (hoặc phím Space) để thoát thân!</p>
+    <button id="ghenRun" class="run">🏃‍♀️ CHẠY!</button>
+    <div class="timer"><i id="ghenBar"></i></div>
+    <div id="ghenCount"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/shared/data.js"></script>
+<script src="portrait.js"></script>
+<script src="cartoons.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
